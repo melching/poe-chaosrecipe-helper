@@ -1,6 +1,7 @@
 import datetime, time
 import requests
 import os
+import glob
 
 import configparser
 import logging
@@ -116,8 +117,34 @@ filter_strings = {
 split_helper = "#imjustalinetohelptosplitthefileproperlyjustignoreme"
 
 if config.getboolean("settings", "toast_alert"):
-    logging.info("Creating ToastNotifier")
+    logging.info("Creating ToastNotifier.")
     toaster = ToastNotifier()
+
+
+# check what filter to change
+logging.info("Checking filter path.")
+filterpath = config.get("settings", "filterpath")
+if not os.path.isfile(filterpath):
+    logging.info("File at filterpath does not exist, trying to find it anyways.")
+
+    # get currently used filter from "production.ini" at %USERPROFILE%
+    poedir = os.environ["userprofile"] + "\Documents\My Games\Path of Exile\\"
+    poeconfig = configparser.ConfigParser()
+    poeconfig.read(os.path.join(poedir, "production_Config.ini"), 
+                   encoding='utf-8-sig')
+    filtername = poeconfig.get("UI", "item_filter")
+
+    # as the folder of the filter is not specified (as far as I know), just search for all files in poedir
+    # (assuming the filter name is unqiue)
+    paths = glob.glob(poedir + "**\\" + filtername, recursive=True)
+    if len(paths) == 0:
+        logging.warn("Could not find the filter, please check your settings.")
+        raise FileNotFoundError
+    elif len(paths) > 1:
+        logging.warn("Found multiple filter with the same name, chosing the first and possibly wrong one.")
+        filterpath = paths[0]
+    else:
+        filterpath = paths[0]
 
 
 # main method
@@ -162,7 +189,7 @@ def repeat():
     logging.info("Created string for filter.")
 
     # check if change needed and write accordingly
-    with open(config.get("settings", "filterpath"), 'r+') as f:
+    with open(filterpath, 'r+') as f:
         content = f.read()
         
         parts = content.split(split_helper)
