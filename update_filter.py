@@ -1,16 +1,27 @@
 import datetime, time
 import requests
 import os
+
 import configparser
 import logging
+import traceback
+
 from win10toast import ToastNotifier
+import six
+import appdirs
+import packaging.requirements
 
 from itembases import *
+
+import ctypes
+
 
 # load config from file
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+if config.getboolean("settings", "minimize_on_start"):
+    ctypes.windll.user32.ShowWindow( ctypes.windll.kernel32.GetConsoleWindow(), 6 )
 
 # setup logger
 logging_handler = [logging.StreamHandler()]
@@ -163,11 +174,23 @@ def repeat():
             f.write(str_to_filter + parts[-1])
             f.close()
             if config.getboolean("settings", "toast_alert"):
-                toaster.show_toast("Updated Filter!","Dont forget to refresh the filter on the options menu.", duration=3)
+                toaster.show_toast("Updated Filter!","Dont forget to refresh the filter on the options menu.", duration=3, icon_path="chaos.ico")
 
 
 interval = config.getint("settings", "update_interval")
 starttime = time.time()
-while True:
-    repeat()
-    time.sleep(interval - ((time.time() - starttime) % interval))
+loop = True
+error_count = 0
+while loop:
+    try:
+        repeat()
+        error_count = max(error_count-1, 0) #error decay
+    except Exception as e:
+        error_count += 1
+        logging.error(f"Exception encountered, {str(e)}.")
+        logging.error(traceback.format_exc())
+    if error_count >= 3:
+        loop = False
+        logging.critical(f"Ending loop, too many errors in recent runs ({error_count}).")
+    else:
+        time.sleep(interval - ((time.time() - starttime) % interval))
