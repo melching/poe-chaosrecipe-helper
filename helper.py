@@ -1,3 +1,9 @@
+import random
+import string
+
+
+# create dict to map relevant bases to item class
+
 ring_bases = [
     "Breach Ring", "Coral Ring", "Iron Ring", "Paua Ring", "Unset Ring", 
     "Sapphire Ring", "Topaz Ring", "Ruby Ring", "Diamond Ring", "Gold Ring", 
@@ -106,3 +112,60 @@ sword_bases = [
     "Corsair Sword", "Gemstone Sword", "Cutlass", "Variscite Blade", "Sabre", 
     "Copper Sword", "Rusted Sword"
 ]
+
+itembases = {
+    "rings": ring_bases,
+    "amulets": amulet_bases,
+    "belts": belt_bases,
+    "body_armours": body_bases,
+    "gloves": glove_bases,
+    "boots": boot_bases,
+    "helmets": helmet_bases,
+    "weapons": claw_bases + dagger_bases + wand_bases + sword_bases
+}
+
+
+# define strings for filter, customizable for each object
+head = "Show # ChaosRecipeMod\n"
+tail = "\n\
+    ItemLevel <= 74\n\
+    ItemLevel >= 60\n\
+    PlayAlertSound 16 300\n\
+    Identified False\n\
+    HasInfluence None\n\
+    Rarity Rare\n\
+    SetFontSize 30\n\
+    SetBorderColor 0 0 0 255\n\
+    SetBackgroundColor 200 0 0 255\n\
+    MinimapIcon 2 Orange Kite\n\n"
+
+str_ring =    head + "    Class Ring" + tail
+str_amulet =  head + "    Class Amulet" + tail
+str_belt =    head + "    Class Belt" + tail
+str_glove =   head + "    Class Glove" + tail
+str_boot =    head + "    Class Boot" + tail
+str_body =    head + "    Class \"Body Armours\"" + tail
+str_helmet =  head + "    Class Helmet" + tail
+str_weapon1 = head + "    Class \"Claws\" \"Daggers\" \"Wands\"" + tail
+str_weapon2 = head + "\
+    Class Sword\n\
+    Width < 2\n\
+    Height < 4\
+" + tail
+
+filteradds = {
+    "rings": str_ring,
+    "amulets": str_amulet,
+    "belts": str_belt,
+    "body_armours": str_body,
+    "gloves": str_glove,
+    "boots": str_boot,
+    "helmets": str_helmet,
+    "weapons": str_weapon1+str_weapon2
+}
+
+def get_random_filtername(length):
+    # Random string with the combination of lower and upper case
+    letters = string.ascii_letters
+    result_str = ''.join(random.choice(letters) for i in range(length))
+    return "crh_" + result_str

@@ -11,14 +11,16 @@ from win10toast import ToastNotifier
 import six
 import appdirs
 import packaging.requirements
+import validators
+import urllib.request
 
-from itembases import *
+from helper import itembases, filteradds, get_random_filtername
 
 import ctypes
 
 
 # load config from file
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(interpolation=None)
 config.read("config.ini")
 
 if config.getboolean("settings", "minimize_on_start"):
@@ -59,59 +61,7 @@ for tab in resp["tabs"]:
         payload["tabIndex"]=tab["i"]
         payload["tabs"]=0
         break
-
-
-# create dict to map relevant bases to item class
-bases = {
-    "rings": ring_bases,
-    "amulets": amulet_bases,
-    "belts": belt_bases,
-    "body_armours": body_bases,
-    "gloves": glove_bases,
-    "boots": boot_bases,
-    "helmets": helmet_bases,
-    "weapons": claw_bases + dagger_bases + wand_bases + sword_bases
-}
-
-# define strings for filter, customizable for each object
-head = "Show # ChaosRecipeMod\n"
-tail = "\n\
-    ItemLevel <= 74\n\
-    ItemLevel >= 60\n\
-    PlayAlertSound 16 300\n\
-    Identified False\n\
-    HasInfluence None\n\
-    Rarity Rare\n\
-    SetFontSize 30\n\
-    SetBorderColor 0 0 0 255\n\
-    SetBackgroundColor 200 0 0 255\n\
-    MinimapIcon 2 Orange Kite\n\n"
-
-str_ring =    head + "    Class Ring" + tail
-str_amulet =  head + "    Class Amulet" + tail
-str_belt =    head + "    Class Belt" + tail
-str_glove =   head + "    Class Glove" + tail
-str_boot =    head + "    Class Boot" + tail
-str_body =    head + "    Class \"Body Armours\"" + tail
-str_helmet =  head + "    Class Helmet" + tail
-str_weapon1 = head + "    Class \"Claws\" \"Daggers\" \"Wands\"" + tail
-str_weapon2 = head + "\
-    Class Sword\n\
-    Width < 2\n\
-    Height < 4\
-" + tail
-
-filter_strings = {
-    "rings": str_ring,
-    "amulets": str_amulet,
-    "belts": str_belt,
-    "body_armours": str_body,
-    "gloves": str_glove,
-    "boots": str_boot,
-    "helmets": str_helmet,
-    "weapons": str_weapon1+str_weapon2
-}
-
+     
 
 # just a string to help split the filter
 split_helper = "#imjustalinetohelptosplitthefileproperlyjustignoreme"
@@ -123,7 +73,30 @@ if config.getboolean("settings", "toast_alert"):
 
 # check what filter to change
 logging.info("Checking filter path.")
-filterpath = config.get("settings", "filterpath")
+filterpath = config.get("filter", "filterpath")
+
+if validators.url(filterpath):
+    poedir = os.environ["userprofile"] + "\Documents\My Games\Path of Exile\\"
+    filtername = "chaosrecipehelper.filter"
+    targetpath = os.path.join(poedir, filtername)
+
+    logging.info(f"Filterpath in config is url, downloading filter into {targetpath}.")
+    urllib.request.urlretrieve(config.get("filter","filterpath") , targetpath)
+    filterpath = targetpath
+
+    # # change used filter in config
+    # poeconfig = configparser.ConfigParser()
+    # poeconfig.read(os.path.join(poedir, "production_Config.ini"), 
+    #                encoding='utf-8-sig')
+    # poeconfig.set("UI", "item_filter", filtername)
+
+    # logging.info("Writing new filter to config.")
+    # # writing filter to file
+    # with open(os.path.join(poedir, "production_Config.ini"), 'w') as configfile:
+    # # with open("production_Config.ini", 'w') as configfile:
+    #     poeconfig.write(configfile)
+
+
 if not os.path.isfile(filterpath):
     logging.info("File at filterpath does not exist, trying to find it anyways.")
 
@@ -155,7 +128,7 @@ def repeat():
     resp = resp.json()
 
     itemcount = {}
-    for name in bases:
+    for name in itembases:
         itemcount[name] = 0
 
     for item in resp["items"]:
@@ -163,8 +136,8 @@ def repeat():
             itembase = item["typeLine"]
             
             # get item class
-            for name in bases:
-                if itembase in bases[name]:
+            for name in itembases:
+                if itembase in itembases[name]:
                     itemcount[name] += 1
                     break
     logging.info(f"Found the following items: {itemcount}")
@@ -176,14 +149,14 @@ def repeat():
     str_to_filter = ""
 
     # check if engough items are in tab
-    item_threshold = config.getint("poeinfo", "num_item_thresh")
+    item_threshold = config.getint("filter", "num_item_thresh")
     for name in itemcount:
         if itemcount[name] < item_threshold:
-            str_to_filter += filter_strings[name]
+            str_to_filter += filteradds[name]
     
     # check again for rings as you need two for each recipe
     if itemcount["rings"] >= item_threshold and itemcount["rings"] < item_threshold*2:
-        str_to_filter += filter_strings["rings"]
+        str_to_filter += filteradds["rings"]
         
     str_to_filter += "\n" + split_helper
     logging.info("Created string for filter.")
