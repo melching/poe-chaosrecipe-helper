@@ -153,9 +153,12 @@ def repeat():
     for name in itemcount:
         if itemcount[name] < item_threshold:
             str_to_filter += filteradds[name]
-        elif config.getboolean("filter", "always_highlight_jewellery") \
+        if config.getboolean("filter", "always_highlight_jewellery") \
                 and name in ["rings", "amulets", "belts"]:
-            str_to_filter += filteradds[name].replace("<=74", "<=100")
+            if filteradds[name] in str_to_filter:
+                str_to_filter = str_to_filter.replace(filteradds[name], filteradds[name].replace("<= 74", "<= 100"))
+            else:
+                str_to_filter += filteradds[name].replace("<= 74", "<= 100")
     
     # check again for rings as you need two for each recipe, do the same for weapons as only 1h weapons are selected
     if itemcount["rings"] >= item_threshold and itemcount["rings"] < item_threshold*2 \
