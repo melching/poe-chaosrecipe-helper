@@ -134,7 +134,7 @@ tail = "\n\
     Identified False\n\
     HasInfluence None\n\
     Rarity Rare\n\
-    SetFontSize 30\n\
+    SetFontSize 50\n\
     SetBorderColor 0 0 0 255\n\
     SetBackgroundColor 200 0 0 255\n\
     MinimapIcon 2 Orange Kite\n\n"
